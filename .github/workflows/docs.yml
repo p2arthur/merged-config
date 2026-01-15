@@ -37,7 +37,7 @@ on:
         description: Publish to DevPortal branch
         required: false
         type: boolean
-        default: false
+        default: true
       devportal-docs-branch:
         description: Branch to publish docs for DevPortal consumption
         required: false
