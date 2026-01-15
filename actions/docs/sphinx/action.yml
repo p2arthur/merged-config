@@ -52,6 +52,14 @@ runs:
           uv sync
         fi
 
+    - name: Ensure Sphinx is available
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if ! uv run sphinx-build --version >/dev/null 2>&1; then
+          uv pip install sphinx
+        fi
+
     - name: Build Documentation
       shell: bash
       working-directory: ${{ inputs.working-directory }}
