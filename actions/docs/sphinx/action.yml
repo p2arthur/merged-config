@@ -19,8 +19,8 @@ inputs:
     description: Output path for generated docs
     required: false
     default: "docs/_build/html"
-  dependency-groups:
-    description: Dependency groups to install (uv --group) from the bundled pyproject; leave blank to use the default 'docs' group
+  extras:
+    description: Optional dependencies to install from the bundled pyproject (comma-separated extras); leave blank to use 'docs'
     required: false
     default: "docs"
   extra-packages:
@@ -45,13 +45,13 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        groups="${{ inputs.dependency-groups }}"
+        extras_input="${{ inputs.extras }}"
         extras="${{ inputs.extra-packages }}"
 
         project="${{ github.action_path }}"
-        target_group="${groups:-docs}"
+        target_extra="${extras_input:-docs}"
 
-        uv sync --project "$project" --group "$target_group"
+        uv sync --project "$project" --extra "$target_extra"
 
         if [ -n "$extras" ]; then
           uv pip install --project "$project" $extras
