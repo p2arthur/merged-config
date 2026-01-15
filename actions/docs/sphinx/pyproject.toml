@@ -1,15 +1,20 @@
-[project]
-name = "sphinx-docs-action"
-version = "0.0.0"
-description = "Self-contained Sphinx environment for the reusable docs action."
-requires-python = ">=3.12"
-dependencies = []
+[tool.poetry]
+name = "algokit-python-docs-tooling"
+version = "0.1.0"
+description = "Internal Sphinx tooling for Algokit shared config docs generation."
+authors = ["Algorand Foundation"]
+package-mode = false
 
-[tool.uv]
-dev-dependencies = []
+[tool.poetry.dependencies]
+python = "^3.12"
+sphinx = "^8.2.3"
+furo = "^2024.1.29"
+myst-parser = "^4.0.0"
+sphinx-autodoc2 = "^0.5.0"
+sphinx-autobuild = "^2024.4.16"
+sphinx-copybutton = "^0.5.2"
+sphinx-mermaid = "^0.0.8"
 
-[tool.uv.dependency-groups]
-docs = [
-  "sphinx==9.1.0",
-  "myst-parser==4.0.0"
-]
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
