@@ -40,7 +40,17 @@ runs:
     - name: Install Dependencies
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: uv sync --group "${{ inputs.dependency-groups }}"
+      run: |
+        set -euo pipefail
+        groups="${{ inputs.dependency-groups }}"
+        if [ -n "$groups" ]; then
+          if ! uv sync --group "$groups"; then
+            echo "Dependency group '$groups' not found; falling back to full sync" >&2
+            uv sync
+          fi
+        else
+          uv sync
+        fi
 
     - name: Build Documentation
       shell: bash
