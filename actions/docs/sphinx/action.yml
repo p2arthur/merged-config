@@ -43,20 +43,18 @@ runs:
 
     - name: Install Dependencies
       shell: bash
-      working-directory: ${{ github.action_path }}
       run: |
         set -euo pipefail
         groups="${{ inputs.dependency-groups }}"
         extras="${{ inputs.extra-packages }}"
 
-        if [ -n "$groups" ]; then
-          uv sync --group "$groups"
-        else
-          uv sync --group docs
-        fi
+        project="${{ github.action_path }}"
+        target_group="${groups:-docs}"
+
+        uv sync --project "$project" --group "$target_group"
 
         if [ -n "$extras" ]; then
-          uv pip install $extras
+          uv pip install --project "$project" $extras
         fi
 
     - name: Build Documentation
