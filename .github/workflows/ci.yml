@@ -134,7 +134,7 @@ jobs:
         shell: bash
         run: |
           npm install --ignore-scripts --no-fund --no-audit
-          bash scripts/npm-audit-log.sh
+          bash .github/workflow-resources/scripts/npm-audit-log.sh
         env:
           OUT_DIR: security
 
