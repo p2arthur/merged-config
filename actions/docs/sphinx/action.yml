@@ -64,7 +64,17 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
+        set -euo pipefail
+        src="${{ inputs.docs-directory }}"
+        dest="${{ inputs.docs-path }}"
+
+        # Avoid Sphinx failure when source and destination are identical.
+        if [ "$src" = "$dest" ]; then
+          dest="${src%/}/_build/html"
+          echo "Destination matches source; using '$dest' instead."
+        fi
+
         uv run sphinx-build \
           -b html \
-          "${{ inputs.docs-directory }}" \
-          "${{ inputs.docs-path }}"
+          "$src" \
+          "$dest"
