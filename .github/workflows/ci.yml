@@ -77,6 +77,7 @@ on:
 
 permissions:
   contents: read # Required to checkout code
+  actions: read # Needed to upload audit artifact
 
 jobs:
   validate:
@@ -104,6 +105,32 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4.3.1 # v4.3.1
+
+      - name: Log Workflow Execution
+        shell: bash
+        env:
+          LOG_DIR: security
+          JOB_NAME: ci
+          PROJECT_TYPE: ${{ inputs.project-type }}
+          WORKING_DIR: ${{ inputs.working-directory }}
+          SKIP_AUDIT: ${{ inputs.skip-audit }}
+          SKIP_LINT: ${{ inputs.skip-lint }}
+          SKIP_TEST: ${{ inputs.skip-test }}
+          SKIP_BUILD: ${{ inputs.skip-build }}
+          PRE_TEST_SCRIPT: ${{ inputs.pre-test-script }}
+          LINT_COMMAND: ${{ inputs.lint-command }}
+          TEST_COMMAND: ${{ inputs.test-command }}
+          BUILD_COMMAND: ${{ inputs.build-command }}
+        run: bash scripts/workflow-run-log.sh
+
+      - name: Security Audit (npm)
+        if: inputs.project-type == 'node' && inputs.skip-audit != true
+        shell: bash
+        run: |
+          npm install --ignore-scripts --no-fund --no-audit
+          bash scripts/npm-audit-log.sh
+        env:
+          OUT_DIR: security
 
       - name: Run Node CI
         if: inputs.project-type == 'node'
@@ -136,3 +163,10 @@ jobs:
           lint-command: ${{ inputs.lint-command }}
           test-command: ${{ inputs.test-command }}
           build-command: ${{ inputs.build-command }}
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v4.4.3 # v4.6.0
+        with:
+          name: workflow-logs
+          path: security/
