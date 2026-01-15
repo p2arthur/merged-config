@@ -105,39 +105,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.3.1 # v4.3.1
 
-      - name: Checkout workflow resources
-        uses: actions/checkout@v4.3.1 # v4.3.1
-        with:
-          repository: p2arthur/merged-config
-          ref: main
-          path: .github/workflow-resources
-
-      - name: Log Workflow Execution
-        shell: bash
-        env:
-          LOG_DIR: security
-          JOB_NAME: ci
-          PROJECT_TYPE: ${{ inputs.project-type }}
-          WORKING_DIR: ${{ inputs.working-directory }}
-          SKIP_AUDIT: ${{ inputs.skip-audit }}
-          SKIP_LINT: ${{ inputs.skip-lint }}
-          SKIP_TEST: ${{ inputs.skip-test }}
-          SKIP_BUILD: ${{ inputs.skip-build }}
-          PRE_TEST_SCRIPT: ${{ inputs.pre-test-script }}
-          LINT_COMMAND: ${{ inputs.lint-command }}
-          TEST_COMMAND: ${{ inputs.test-command }}
-          BUILD_COMMAND: ${{ inputs.build-command }}
-        run: bash .github/workflow-resources/scripts/workflow-run-log.sh
-
-      - name: Security Audit (npm)
-        if: inputs.project-type == 'node' && inputs.skip-audit != true
-        shell: bash
-        run: |
-          npm install --ignore-scripts --no-fund --no-audit
-          bash .github/workflow-resources/scripts/npm-audit-log.sh
-        env:
-          OUT_DIR: security
-
       - name: Run Node CI
         if: inputs.project-type == 'node'
         uses: p2arthur/merged-config/actions/ci/node@main
