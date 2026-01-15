@@ -60,6 +60,14 @@ runs:
           uv pip install sphinx
         fi
 
+    - name: Ensure MyST parser is available
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if ! uv run python -c "import myst_parser" >/dev/null 2>&1; then
+          uv pip install myst-parser
+        fi
+
     - name: Build Documentation
       shell: bash
       working-directory: ${{ inputs.working-directory }}
