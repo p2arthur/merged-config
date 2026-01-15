@@ -1,0 +1,27 @@
+name: Commit Lint
+author: mrcointreau
+description: Lint commits using conventional commit rules
+
+inputs:
+  from:
+    description: Starting commit SHA (exclusive)
+    required: true
+  to:
+    description: Ending commit SHA (inclusive)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install commitlint
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci
+
+    - name: Lint Commits
+      shell: bash
+      run: |
+        npx --prefix "${{ github.action_path }}" commitlint \
+          --from ${{ inputs.from }} \
+          --to ${{ inputs.to }} \
+          --config "${{ github.action_path }}/commitlint.config.cjs"

@@ -1,0 +1,46 @@
+{
+  "branches": ["release", { "name": "main", "prerelease": "beta" }],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" },
+          { "type": "build", "release": "patch" },
+          { "type": "chore", "release": "patch" }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            { "type": "feat", "section": "Features" },
+            { "type": "fix", "section": "Bug Fixes" },
+            { "type": "perf", "section": "Performance" },
+            { "type": "build", "section": "Build", "hidden": false }
+          ]
+        }
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "if [ \"$DRY_RUN\" = \"true\" ]; then echo \"Dry run: skip publish\"; exit 0; fi && sed -i.bak 's/^version = .*/version = \"${nextRelease.version}\"/' pyproject.toml && rm -f pyproject.toml.bak && uv build && if [ \"$USE_OIDC\" = \"true\" ]; then uv publish --trusted-publishing always; elif [ -n \"$PYPI_TOKEN\" ]; then UV_PUBLISH_TOKEN=\"$PYPI_TOKEN\" uv publish; else echo \"::error::pypi-token is required when use-oidc is false\"; exit 1; fi"
+      }
+    ],
+    "@semantic-release/github",
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["pyproject.toml", "uv.lock"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,106 @@
+name: On Merge to Main
+# author: p2arthur
+
+on:
+  workflow_call:
+    inputs:
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: string
+      working-directory:
+        description: "Working directory for all jobs"
+        required: false
+        type: string
+        default: "."
+      node-version:
+        description: "Node.js version (Node projects)"
+        required: false
+        type: string
+        default: "22"
+      python-version:
+        description: "Python version (Python projects)"
+        required: false
+        type: string
+        default: "3.12"
+      docs-path:
+        description: "Path to generated docs"
+        required: false
+        type: string
+        default: "docs"
+      publish-docs:
+        description: "Publish docs to GitHub Pages"
+        required: false
+        type: boolean
+        default: true
+      release-dry-run:
+        description: "Run release in dry-run mode"
+        required: false
+        type: boolean
+        default: false
+      release-config-path:
+        description: "Optional semantic-release config path"
+        required: false
+        type: string
+        default: ""
+    secrets:
+      BOT_ID:
+        required: true
+      BOT_SK:
+        required: true
+      NPM_TOKEN:
+        required: false
+      PYPI_TOKEN:
+        required: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+  pages: write
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    with:
+      project-type: ${{ inputs.project-type }}
+      working-directory: ${{ inputs.working-directory }}
+      node-version: ${{ inputs.node-version }}
+      python-version: ${{ inputs.python-version }}
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  docs:
+    name: Build Docs
+    needs: ci
+    if: needs.ci.result == 'success'
+    uses: ./.github/workflows/docs.yml
+    with:
+      project-type: ${{ inputs.project-type }}
+      working-directory: ${{ inputs.working-directory }}
+      docs-path: ${{ inputs.docs-path }}
+      node-version: ${{ inputs.node-version }}
+      python-version: ${{ inputs.python-version }}
+      publish: ${{ inputs.publish-docs }}
+
+  release:
+    name: Release
+    needs: [ci, docs]
+    if: |
+      needs.ci.result == 'success' &&
+      (needs.docs.result == 'success' || needs.docs.result == 'skipped')
+    uses: ./.github/workflows/release.yml
+    with:
+      project-type: ${{ inputs.project-type }}
+      working-directory: ${{ inputs.working-directory }}
+      node-version: ${{ inputs.node-version }}
+      python-version: ${{ inputs.python-version }}
+      dry-run: ${{ inputs.release-dry-run }}
+      config-path: ${{ inputs.release-config-path }}
+    secrets:
+      BOT_ID: ${{ secrets.BOT_ID }}
+      BOT_SK: ${{ secrets.BOT_SK }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}

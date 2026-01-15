@@ -1,0 +1,142 @@
+name: Pull Request
+# author: mrcointreau
+
+on:
+  workflow_call:
+    inputs:
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: string
+      working-directory:
+        description: Working directory
+        required: false
+        type: string
+        default: "."
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: "22"
+      python-version:
+        description: Python version
+        required: false
+        type: string
+        default: "3.12"
+      run-commit-lint:
+        description: Run conventional commit linting
+        required: false
+        type: boolean
+        default: true
+      skip-audit:
+        description: Skip security audit step
+        required: false
+        type: boolean
+        default: false
+      audit-level:
+        description: "Minimum vulnerability severity to fail (Node.js only): low, moderate, high, critical"
+        required: false
+        type: string
+        default: "moderate"
+      skip-lint:
+        description: Skip linting step
+        required: false
+        type: boolean
+        default: false
+      skip-test:
+        description: Skip test step
+        required: false
+        type: boolean
+        default: false
+      skip-build:
+        description: Skip build step
+        required: false
+        type: boolean
+        default: false
+      pre-test-script:
+        description: Script to run before tests
+        required: false
+        type: string
+        default: ""
+      lint-command:
+        description: Custom lint command (auto-detected if empty)
+        required: false
+        type: string
+        default: ""
+      test-command:
+        description: Custom test command (auto-detected if empty)
+        required: false
+        type: string
+        default: ""
+      build-command:
+        description: Custom build command (auto-detected if empty)
+        required: false
+        type: string
+        default: ""
+    secrets:
+      NPM_TOKEN:
+        required: false
+
+permissions:
+  contents: read # Required to checkout code and run CI
+
+jobs:
+  validate:
+    name: Validate Inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate project-type
+        if: inputs.project-type != 'node' && inputs.project-type != 'python'
+        run: |
+          echo "::error::project-type must be 'node' or 'python', got '${{ inputs.project-type }}'"
+          exit 1
+
+      - name: Validate audit-level
+        if: inputs.audit-level != 'low' && inputs.audit-level != 'moderate' && inputs.audit-level != 'high' && inputs.audit-level != 'critical'
+        run: |
+          echo "::error::audit-level must be 'low', 'moderate', 'high', or 'critical', got '${{ inputs.audit-level }}'"
+          exit 1
+
+  ci:
+    name: CI
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+    with:
+      project-type: ${{ inputs.project-type }}
+      working-directory: ${{ inputs.working-directory }}
+      node-version: ${{ inputs.node-version }}
+      python-version: ${{ inputs.python-version }}
+      skip-audit: ${{ inputs.skip-audit }}
+      audit-level: ${{ inputs.audit-level }}
+      skip-lint: ${{ inputs.skip-lint }}
+      skip-test: ${{ inputs.skip-test }}
+      skip-build: ${{ inputs.skip-build }}
+      pre-test-script: ${{ inputs.pre-test-script }}
+      lint-command: ${{ inputs.lint-command }}
+      test-command: ${{ inputs.test-command }}
+      build-command: ${{ inputs.build-command }}
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  commit-lint:
+    name: Commit Lint
+    if: inputs.run-commit-lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.3.1 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.4.0 # v4.4.0
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Run Commitlint
+        uses: ./actions/utils/commitlint
+        with:
+          from: ${{ github.event.pull_request.base.sha }}
+          to: ${{ github.event.pull_request.head.sha }}

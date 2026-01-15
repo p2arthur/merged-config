@@ -1,0 +1,94 @@
+name: Node Build and Zip
+# author: p2arthur
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: "22"
+      working-directory:
+        description: Working directory
+        required: false
+        type: string
+        default: "."
+      install-command:
+        description: Install command
+        required: false
+        type: string
+        default: "npm ci"
+      build-command:
+        description: Build command
+        required: false
+        type: string
+        default: "npm run build --if-present"
+      build-path:
+        description: Path to build output
+        required: false
+        type: string
+        default: "dist"
+      artifact-name:
+        description: Name for uploaded artifact
+        required: false
+        type: string
+        default: "package"
+      pre-run-script:
+        description: Optional script to run before install/build
+        required: false
+        type: string
+        default: ""
+    secrets:
+      NPM_TOKEN:
+        required: false
+      GH_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.3.1 # v4.3.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN || github.token }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.4.0 # v4.4.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+          registry-url: https://registry.npmjs.org
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || github.token }}
+
+      - name: Pre-run Script
+        if: inputs.pre-run-script != ''
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: ${{ inputs.pre-run-script }}
+
+      - name: Install
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: ${{ inputs.install-command }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || github.token }}
+
+      - name: Build
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: ${{ inputs.build-command }}
+
+      - name: Archive and Upload Artifact
+        uses: actions/upload-artifact@v4.4.3 # v4.4.3
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.working-directory }}/${{ inputs.build-path }}

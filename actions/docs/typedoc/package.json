@@ -1,0 +1,16 @@
+{
+  "name": "typedoc-action",
+  "version": "0.0.1",
+  "description": "TypeDoc configuration",
+  "author": "mrcointreau",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrcointreau/shared-config.git",
+    "directory": "actions/docs/typedoc"
+  },
+  "private": true,
+  "devDependencies": {
+    "typedoc": "^0.28.3"
+  }
+}

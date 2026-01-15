@@ -1,0 +1,15 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPointStrategy": "expand",
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/node_modules/**",
+    "**/dist/**"
+  ],
+  "theme": "default",
+  "cleanOutputDir": true,
+  "excludeReferences": true,
+  "includeHierarchySummary": true,
+  "highlightLanguages": ["typescript", "javascript", "json", "bash", "yaml"]
+}

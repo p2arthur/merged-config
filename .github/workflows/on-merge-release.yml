@@ -1,0 +1,65 @@
+name: Sync Release Branch
+# author: p2arthur
+
+on:
+  workflow_call:
+    inputs:
+      main-branch:
+        description: "Source branch to promote"
+        required: false
+        type: string
+        default: "main"
+      release-branch:
+        description: "Target release branch"
+        required: false
+        type: string
+        default: "release"
+    secrets:
+      BOT_ID:
+        required: true
+      BOT_SK:
+        required: true
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Bot Token
+        id: bot-token
+        uses: ./actions/utils/bot-token
+        with:
+          app-id: ${{ secrets.BOT_ID }}
+          private-key: ${{ secrets.BOT_SK }}
+
+      - name: Checkout
+        uses: actions/checkout@v4.3.1 # v4.3.1
+        with:
+          fetch-depth: 0
+          token: ${{ steps.bot-token.outputs.token }}
+
+      - name: Sync Branches
+        shell: bash
+        env:
+          MAIN_BRANCH: ${{ inputs.main-branch }}
+          RELEASE_BRANCH: ${{ inputs.release-branch }}
+        run: |
+          git config user.name "automation-bot"
+          git config user.email "automation-bot@users.noreply.github.com"
+
+          git fetch origin "$MAIN_BRANCH" "$RELEASE_BRANCH"
+
+          git checkout "$RELEASE_BRANCH"
+          # Try fast-forward first; fallback to merge if histories diverged
+          if ! git merge --ff-only "origin/$MAIN_BRANCH"; then
+            git merge "origin/$MAIN_BRANCH" --no-edit
+          fi
+          git push origin "HEAD:$RELEASE_BRANCH"
+
+          git checkout "$MAIN_BRANCH"
+          git merge "$RELEASE_BRANCH" --no-edit
+          git push origin "HEAD:$MAIN_BRANCH"

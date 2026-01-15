@@ -1,0 +1,135 @@
+name: Release Node Package
+author: mrcointreau
+description: Run semantic-release and publish Node.js packages using npm with OIDC trusted publishing (recommended) or token-based auth
+
+inputs:
+  node-version:
+    description: Node.js version
+    required: false
+    default: "22"
+  working-directory:
+    description: Working directory
+    required: false
+    default: "."
+  bot-token:
+    description: GitHub token for release
+    required: true
+  npm-token:
+    description: NPM token for publishing, optional if using OIDC trusted publishing
+    required: false
+  dry-run:
+    description: Run in dry-run mode
+    required: false
+    default: "false"
+  use-oidc:
+    description: Use OIDC trusted publishing (recommended), set to 'false' to use npm-token instead
+    required: false
+    default: "true"
+  config-path:
+    description: Path to semantic-release config file (uses built-in config if empty)
+    required: false
+    default: ""
+
+outputs:
+  new-release-published:
+    description: Whether a new release was published ('true' or 'false')
+    value: ${{ steps.release.outputs.new-release-published }}
+  new-release-version:
+    description: The new release version (if published)
+    value: ${{ steps.release.outputs.new-release-version }}
+  new-release-git-tag:
+    description: The git tag of the new release (if published)
+    value: ${{ steps.release.outputs.new-release-git-tag }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4.4.0 # v4.4.0
+      with:
+        node-version: ${{ inputs.node-version }}
+        registry-url: "https://registry.npmjs.org"
+
+    - name: Install Dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm ci
+
+    - name: Install semantic-release
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci
+
+    - name: Run semantic-release
+      id: release
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.bot-token }}
+        NPM_TOKEN: ${{ inputs.npm-token }}
+        NODE_AUTH_TOKEN: ${{ inputs.npm-token }}
+        NPM_CONFIG_PROVENANCE: ${{ inputs.use-oidc == 'true' && inputs.npm-token == '' && 'true' || '' }}
+        NODE_PATH: ${{ github.action_path }}/node_modules
+      run: |
+        # npm-token is optional: if provided, uses token auth; otherwise uses OIDC trusted publishing
+        if [ "${{ inputs.dry-run }}" != "true" ] && [ "${{ inputs.use-oidc }}" != "true" ] && [ -z "${{ inputs.npm-token }}" ]; then
+          echo "::error::npm-token is required when use-oidc is false (set NPM_TOKEN or run with dry-run)."
+          exit 1
+        fi
+
+        ARGS=""
+        if [ "${{ inputs.dry-run }}" = "true" ]; then
+          ARGS="--dry-run"
+        fi
+
+        CONFIG_SRC=""
+        CLEANUP_CONFIG=false
+
+        # Determine config source: use explicit config-path or default to action config
+        if [ -n "${{ inputs.config-path }}" ]; then
+          CONFIG_PATH="${{ inputs.config-path }}"
+          # Convert relative path to absolute
+          if [[ "$CONFIG_PATH" != /* ]]; then
+            CONFIG_SRC="$(pwd)/$CONFIG_PATH"
+          else
+            CONFIG_SRC="$CONFIG_PATH"
+          fi
+        else
+          CONFIG_SRC="${{ github.action_path }}/.releaserc.json"
+        fi
+
+        # Copy config to working directory for semantic-release to auto-detect
+        # Always copy so we don't pick up a repo root config implicitly.
+        if [ "$(realpath "$CONFIG_SRC")" != "$(realpath .releaserc.json 2>/dev/null)" ]; then
+          cp "$CONFIG_SRC" .releaserc.json
+          CLEANUP_CONFIG=true
+        fi
+
+        PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+
+        # Run semantic-release and capture output
+        set +e
+        OUTPUT=$(npx --prefix "${{ github.action_path }}" semantic-release $ARGS 2>&1)
+        EXIT_CODE=$?
+        set -e
+        echo "$OUTPUT"
+
+        # Cleanup config (only if we copied it)
+        if [ "$CLEANUP_CONFIG" = "true" ]; then
+          rm -f .releaserc.json
+        fi
+
+        # Detect new release by checking if the latest tag advanced
+        NEW_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+        if [ "$EXIT_CODE" -eq 0 ] && [ -n "$NEW_TAG" ] && [ "$NEW_TAG" != "$PREV_TAG" ]; then
+          echo "new-release-published=true" >> $GITHUB_OUTPUT
+          VERSION="${NEW_TAG#v}"
+          echo "new-release-version=$VERSION" >> $GITHUB_OUTPUT
+          echo "new-release-git-tag=$NEW_TAG" >> $GITHUB_OUTPUT
+        else
+          echo "new-release-published=false" >> $GITHUB_OUTPUT
+          echo "new-release-version=" >> $GITHUB_OUTPUT
+          echo "new-release-git-tag=" >> $GITHUB_OUTPUT
+        fi
+
+        exit $EXIT_CODE

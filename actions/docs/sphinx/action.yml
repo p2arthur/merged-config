@@ -1,0 +1,52 @@
+name: Generate Sphinx Docs
+author: mrcointreau
+description: Generate Python documentation with Sphinx using uv
+
+inputs:
+  python-version:
+    description: Python version
+    required: false
+    default: "3.12"
+  working-directory:
+    description: Working directory
+    required: false
+    default: "."
+  docs-directory:
+    description: Directory containing Sphinx source
+    required: false
+    default: "docs"
+  docs-path:
+    description: Output path for generated docs
+    required: false
+    default: "docs/_build/html"
+  dependency-groups:
+    description: Dependency groups to install (uv --group)
+    required: false
+    default: "docs"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5.6.0 # v5.6.0
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+      with:
+        enable-cache: true
+
+    - name: Install Dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: uv sync --group "${{ inputs.dependency-groups }}"
+
+    - name: Build Documentation
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        uv run sphinx-build \
+          -b html \
+          "${{ inputs.docs-directory }}" \
+          "${{ inputs.docs-path }}"

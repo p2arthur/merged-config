@@ -1,0 +1,45 @@
+{
+  "name": "@mrcointreau/shared-config",
+  "version": "0.0.1",
+  "description": "Reusable GitHub Actions workflows and shared configurations for Node.js and Python projects",
+  "author": "mrcointreau",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrcointreau/shared-config.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mrcointreau/shared-config/issues"
+  },
+  "homepage": "https://github.com/mrcointreau/shared-config#readme",
+  "keywords": [
+    "github-actions",
+    "ci-cd",
+    "eslint",
+    "prettier",
+    "shared-config",
+    "reusable-workflows"
+  ],
+  "exports": {
+    "./eslint": "./configs/eslint.config.mjs",
+    "./prettier": "./configs/prettier.config.cjs"
+  },
+  "scripts": {
+    "build": "node scripts/build-dist.cjs"
+  },
+  "files": [
+    "configs"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@eslint/js": ">=9",
+    "eslint": ">=9",
+    "eslint-config-prettier": ">=9",
+    "eslint-plugin-unused-imports": ">=4",
+    "prettier": ">=3",
+    "typescript-eslint": ">=8"
+  }
+}

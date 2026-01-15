@@ -1,0 +1,58 @@
+name: Generate TypeDoc
+author: mrcointreau
+description: Generate TypeScript documentation with TypeDoc using npm
+
+inputs:
+  node-version:
+    description: Node.js version
+    required: false
+    default: "22"
+  working-directory:
+    description: Working directory
+    required: false
+    default: "."
+  docs-path:
+    description: Output path for generated docs
+    required: false
+    default: "docs"
+  config-path:
+    description: Path to typedoc config file
+    required: false
+    default: "typedoc.json"
+  entry-points:
+    description: Entry points (space-separated)
+    required: false
+    default: "src/index.ts"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4.4.0 # v4.4.0
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+
+    - name: Install Dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm ci
+
+    - name: Install TypeDoc
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci
+
+    - name: Generate Documentation
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ -f "${{ inputs.config-path }}" ]; then
+          npx --prefix "${{ github.action_path }}" typedoc --options "${{ inputs.config-path }}"
+        else
+          npx --prefix "${{ github.action_path }}" typedoc \
+            --options "${{ github.action_path }}/typedoc.json" \
+            --entryPoints "${{ inputs.entry-points }}" \
+            --out "${{ inputs.docs-path }}"
+        fi

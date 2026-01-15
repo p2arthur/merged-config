@@ -1,0 +1,17 @@
+{
+  "name": "commitlint-action",
+  "version": "0.0.1",
+  "description": "Commitlint configuration",
+  "author": "mrcointreau",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrcointreau/shared-config.git",
+    "directory": "actions/utils/commitlint"
+  },
+  "private": true,
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1"
+  }
+}

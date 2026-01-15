@@ -1,0 +1,133 @@
+name: Release
+# author: mrcointreau
+
+on:
+  workflow_call:
+    inputs:
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: string
+      working-directory:
+        description: Working directory
+        required: false
+        type: string
+        default: "."
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: "22"
+      python-version:
+        description: Python version
+        required: false
+        type: string
+        default: "3.12"
+      dry-run:
+        description: Run in dry-run mode
+        required: false
+        type: boolean
+        default: false
+      config-path:
+        description: Custom semantic-release config file path (uses built-in config if empty)
+        required: false
+        type: string
+        default: ""
+    secrets:
+      BOT_ID:
+        required: true
+      BOT_SK:
+        required: true
+      NPM_TOKEN:
+        required: false
+      PYPI_TOKEN:
+        required: false
+  workflow_dispatch:
+    inputs:
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: string
+      working-directory:
+        description: Working directory
+        required: false
+        type: string
+        default: "."
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: "22"
+      python-version:
+        description: Python version
+        required: false
+        type: string
+        default: "3.12"
+      dry-run:
+        description: Run in dry-run mode
+        required: false
+        type: boolean
+        default: false
+      config-path:
+        description: Custom semantic-release config file path (uses built-in config if empty)
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write # Required for OIDC trusted publishing to npm/PyPI
+
+jobs:
+  validate:
+    name: Validate Inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate project-type
+        if: inputs.project-type != 'node' && inputs.project-type != 'python'
+        run: |
+          echo "::error::project-type must be 'node' or 'python', got '${{ inputs.project-type }}'"
+          exit 1
+
+  release:
+    name: Release
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.3.1 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Generate Bot Token
+        id: bot-token
+        uses: ./actions/utils/bot-token
+        with:
+          app-id: ${{ secrets.BOT_ID }}
+          private-key: ${{ secrets.BOT_SK }}
+
+      - name: Release Node Package
+        if: inputs.project-type == 'node'
+        uses: ./actions/release/node
+        with:
+          node-version: ${{ inputs.node-version }}
+          working-directory: ${{ inputs.working-directory }}
+          bot-token: ${{ steps.bot-token.outputs.token }}
+          npm-token: ${{ secrets.NPM_TOKEN }}
+          dry-run: ${{ inputs.dry-run }}
+          config-path: ${{ inputs.config-path }}
+
+      - name: Release Python Package
+        if: inputs.project-type == 'python'
+        uses: ./actions/release/python
+        with:
+          python-version: ${{ inputs.python-version }}
+          working-directory: ${{ inputs.working-directory }}
+          bot-token: ${{ steps.bot-token.outputs.token }}
+          pypi-token: ${{ secrets.PYPI_TOKEN }}
+          dry-run: ${{ inputs.dry-run }}
+          config-path: ${{ inputs.config-path }}

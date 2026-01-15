@@ -1,0 +1,144 @@
+name: Release Python Package
+author: mrcointreau
+description: Run semantic-release and publish Python packages using uv with OIDC trusted publishing (recommended) or token-based auth
+
+inputs:
+  python-version:
+    description: Python version
+    required: false
+    default: "3.12"
+  working-directory:
+    description: Working directory
+    required: false
+    default: "."
+  bot-token:
+    description: GitHub token for release
+    required: true
+  pypi-token:
+    description: PyPI token for publishing, optional if using OIDC trusted publishing
+    required: false
+  dry-run:
+    description: Run in dry-run mode
+    required: false
+    default: "false"
+  use-oidc:
+    description: Use OIDC trusted publishing (recommended), set to 'false' to use pypi-token instead
+    required: false
+    default: "true"
+  config-path:
+    description: Path to semantic-release config file (uses built-in config if empty)
+    required: false
+    default: ""
+
+outputs:
+  new-release-published:
+    description: Whether a new release was published ('true' or 'false')
+    value: ${{ steps.release.outputs.new-release-published }}
+  new-release-version:
+    description: The new release version (if published)
+    value: ${{ steps.release.outputs.new-release-version }}
+  new-release-git-tag:
+    description: The git tag of the new release (if published)
+    value: ${{ steps.release.outputs.new-release-git-tag }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js (for semantic-release)
+      uses: actions/setup-node@v4.4.0 # v4.4.0
+      with:
+        node-version: "22"
+
+    - name: Setup Python
+      uses: actions/setup-python@v5.6.0 # v5.6.0
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+      with:
+        enable-cache: true
+
+    - name: Install Dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: uv sync
+
+    - name: Install semantic-release
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci
+
+    - name: Run semantic-release
+      id: release
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.bot-token }}
+        USE_OIDC: ${{ inputs.use-oidc }}
+        PYPI_TOKEN: ${{ inputs.pypi-token }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        NODE_PATH: ${{ github.action_path }}/node_modules
+      run: |
+        # pypi-token is optional: if provided, uses token auth; otherwise uses OIDC trusted publishing
+        if [ "${{ inputs.dry-run }}" != "true" ] && [ "${{ inputs.use-oidc }}" != "true" ] && [ -z "${{ inputs.pypi-token }}" ]; then
+          echo "::error::pypi-token is required when use-oidc is false (set PYPI_TOKEN or run with dry-run)."
+          exit 1
+        fi
+
+        ARGS=""
+        if [ "${{ inputs.dry-run }}" = "true" ]; then
+          ARGS="--dry-run"
+        fi
+
+        CONFIG_SRC=""
+        CLEANUP_CONFIG=false
+
+        # Determine config source: use explicit config-path or default to action config
+        if [ -n "${{ inputs.config-path }}" ]; then
+          CONFIG_PATH="${{ inputs.config-path }}"
+          # Convert relative path to absolute
+          if [[ "$CONFIG_PATH" != /* ]]; then
+            CONFIG_SRC="$(pwd)/$CONFIG_PATH"
+          else
+            CONFIG_SRC="$CONFIG_PATH"
+          fi
+        else
+          CONFIG_SRC="${{ github.action_path }}/.releaserc.json"
+        fi
+
+        # Copy config to working directory for semantic-release to auto-detect
+        # Always copy so we don't pick up a repo root config implicitly.
+        if [ "$(realpath "$CONFIG_SRC")" != "$(realpath .releaserc.json 2>/dev/null)" ]; then
+          cp "$CONFIG_SRC" .releaserc.json
+          CLEANUP_CONFIG=true
+        fi
+
+        PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+
+        # Run semantic-release and capture output
+        set +e
+        OUTPUT=$(npx --prefix "${{ github.action_path }}" semantic-release $ARGS 2>&1)
+        EXIT_CODE=$?
+        set -e
+        echo "$OUTPUT"
+
+        # Cleanup config (only if we copied it)
+        if [ "$CLEANUP_CONFIG" = "true" ]; then
+          rm -f .releaserc.json
+        fi
+
+        # Detect new release by checking if the latest tag advanced
+        NEW_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+        if [ "$EXIT_CODE" -eq 0 ] && [ -n "$NEW_TAG" ] && [ "$NEW_TAG" != "$PREV_TAG" ]; then
+          echo "new-release-published=true" >> $GITHUB_OUTPUT
+          VERSION="${NEW_TAG#v}"
+          echo "new-release-version=$VERSION" >> $GITHUB_OUTPUT
+          echo "new-release-git-tag=$NEW_TAG" >> $GITHUB_OUTPUT
+        else
+          echo "new-release-published=false" >> $GITHUB_OUTPUT
+          echo "new-release-version=" >> $GITHUB_OUTPUT
+          echo "new-release-git-tag=" >> $GITHUB_OUTPUT
+        fi
+
+        exit $EXIT_CODE

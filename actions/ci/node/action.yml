@@ -1,0 +1,125 @@
+name: Node CI
+author: mrcointreau
+description: Audit, lint, test, and build Node.js projects using npm
+
+inputs:
+  node-version:
+    description: Node.js version
+    required: false
+    default: "22"
+  working-directory:
+    description: Working directory
+    required: false
+    default: "."
+  npm-token:
+    description: NPM token for private packages
+    required: false
+  skip-audit:
+    description: Skip security audit step
+    required: false
+    default: "false"
+  audit-level:
+    description: "Minimum vulnerability severity to fail: low, moderate, high, critical"
+    required: false
+    default: "moderate"
+  skip-lint:
+    description: Skip linting step
+    required: false
+    default: "false"
+  skip-test:
+    description: Skip test step
+    required: false
+    default: "false"
+  skip-build:
+    description: Skip build step
+    required: false
+    default: "false"
+  pre-test-script:
+    description: Script to run before tests
+    required: false
+    default: ""
+  install-command:
+    description: "Install command to run"
+    required: false
+    default: "npm ci"
+  lint-command:
+    description: Lint command to run
+    required: false
+    default: "npm run lint --if-present"
+  test-command:
+    description: Test command to run
+    required: false
+    default: "npm test --if-present"
+  build-command:
+    description: Build command to run
+    required: false
+    default: "npm run build --if-present"
+
+outputs:
+  audit-outcome:
+    description: Outcome of the audit step (success, failure, skipped)
+    value: ${{ steps.audit.outcome }}
+  lint-outcome:
+    description: Outcome of the lint step (success, failure, skipped)
+    value: ${{ steps.lint.outcome }}
+  test-outcome:
+    description: Outcome of the test step (success, failure, skipped)
+    value: ${{ steps.test.outcome }}
+  build-outcome:
+    description: Outcome of the build step (success, failure, skipped)
+    value: ${{ steps.build.outcome }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4.4.0 # v4.4.0
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+      env:
+        NODE_AUTH_TOKEN: ${{ inputs.npm-token }}
+
+    - name: Install Dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: ${{ inputs.install-command }}
+
+    - name: Audit
+      id: audit
+      if: inputs.skip-audit != 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm audit --audit-level=${{ inputs.audit-level }}
+
+    - name: Lint
+      id: lint
+      if: inputs.skip-lint != 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        ${{ inputs.lint-command }}
+
+    - name: Pre-test Script
+      if: inputs.pre-test-script != ''
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        ${{ inputs.pre-test-script }}
+
+    - name: Test
+      id: test
+      if: inputs.skip-test != 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        ${{ inputs.test-command }}
+
+    - name: Build
+      id: build
+      if: inputs.skip-build != 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        ${{ inputs.build-command }}

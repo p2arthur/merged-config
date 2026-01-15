@@ -1,0 +1,138 @@
+name: Documentation
+# author: mrcointreau
+
+on:
+  workflow_call:
+    inputs:
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: string
+      working-directory:
+        description: Working directory
+        required: false
+        type: string
+        default: "."
+      docs-path:
+        description: Path to generated docs
+        required: false
+        type: string
+        default: "docs"
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: "22"
+      python-version:
+        description: Python version
+        required: false
+        type: string
+        default: "3.12"
+      publish:
+        description: Publish to GitHub Pages
+        required: false
+        type: boolean
+        default: true
+      publish-devportal:
+        description: Publish to DevPortal branch
+        required: false
+        type: boolean
+        default: false
+      devportal-docs-branch:
+        description: Branch to publish docs for DevPortal consumption
+        required: false
+        type: string
+        default: "docs-dist"
+
+permissions:
+  contents: read # Required to checkout code and build docs
+
+jobs:
+  validate:
+    name: Validate Inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate project-type
+        if: inputs.project-type != 'node' && inputs.project-type != 'python'
+        run: |
+          echo "::error::project-type must be 'node' or 'python', got '${{ inputs.project-type }}'"
+          exit 1
+
+  build:
+    name: Build Documentation
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.3.1 # v4.3.1
+
+      - name: Generate TypeDoc
+        if: inputs.project-type == 'node'
+        uses: ./actions/docs/typedoc
+        with:
+          node-version: ${{ inputs.node-version }}
+          working-directory: ${{ inputs.working-directory }}
+          docs-path: ${{ inputs.docs-path }}
+
+      - name: Generate Sphinx Docs
+        if: inputs.project-type == 'python'
+        uses: ./actions/docs/sphinx
+        with:
+          python-version: ${{ inputs.python-version }}
+          working-directory: ${{ inputs.working-directory }}
+          docs-path: ${{ inputs.docs-path }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4.4.3 # v4.6.2
+        with:
+          name: docs
+          path: ${{ inputs.working-directory }}/${{ inputs.docs-path }}
+
+  publish:
+    name: Publish Documentation
+    needs: build
+    if: inputs.publish && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4.3.0 # v4.3.0
+        with:
+          name: docs
+          path: docs
+
+      - name: Publish to GitHub Pages
+        uses: ./actions/docs/publish
+        with:
+          docs-path: docs
+          github-token: ${{ github.token }}
+
+  devportal-publish:
+    name: Publish to DevPortal Branch
+    needs: build
+    if: inputs.publish-devportal && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4.3.0 # v4.3.0
+        with:
+          name: docs
+          path: docs
+
+      - name: Publish DevPortal Docs
+        uses: ./actions/docs/devportal-publish
+        with:
+          docs_path: docs
+          docs_branch: ${{ inputs.devportal-docs-branch }}
+          github_token: ${{ github.token }}
