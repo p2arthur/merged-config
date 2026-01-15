@@ -101,7 +101,7 @@ jobs:
   ci:
     name: CI
     needs: validate
-    uses: ./.github/workflows/ci.yml
+    uses: p2arthur/merged-config/.github/workflows/ci.yml@main
     with:
       project-type: ${{ inputs.project-type }}
       working-directory: ${{ inputs.working-directory }}
@@ -136,7 +136,7 @@ jobs:
           node-version: ${{ inputs.node-version }}
 
       - name: Run Commitlint
-        uses: ./actions/utils/commitlint
+        uses: p2arthur/merged-config/actions/utils/commitlint@main
         with:
           from: ${{ github.event.pull_request.base.sha }}
           to: ${{ github.event.pull_request.head.sha }}

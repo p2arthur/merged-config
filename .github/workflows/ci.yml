@@ -107,7 +107,7 @@ jobs:
 
       - name: Run Node CI
         if: inputs.project-type == 'node'
-        uses: ./actions/ci/node
+        uses: p2arthur/merged-config/actions/ci/node@main
         with:
           node-version: ${{ inputs.node-version }}
           working-directory: ${{ inputs.working-directory }}
@@ -124,7 +124,7 @@ jobs:
 
       - name: Run Python CI
         if: inputs.project-type == 'python'
-        uses: ./actions/ci/python
+        uses: p2arthur/merged-config/actions/ci/python@main
         with:
           python-version: ${{ inputs.python-version }}
           working-directory: ${{ inputs.working-directory }}

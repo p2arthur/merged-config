@@ -105,14 +105,14 @@ jobs:
 
       - name: Generate Bot Token
         id: bot-token
-        uses: ./actions/utils/bot-token
+        uses: p2arthur/merged-config/actions/utils/bot-token@main
         with:
           app-id: ${{ secrets.BOT_ID }}
           private-key: ${{ secrets.BOT_SK }}
 
       - name: Release Node Package
         if: inputs.project-type == 'node'
-        uses: ./actions/release/node
+        uses: p2arthur/merged-config/actions/release/node@main
         with:
           node-version: ${{ inputs.node-version }}
           working-directory: ${{ inputs.working-directory }}
@@ -123,7 +123,7 @@ jobs:
 
       - name: Release Python Package
         if: inputs.project-type == 'python'
-        uses: ./actions/release/python
+        uses: p2arthur/merged-config/actions/release/python@main
         with:
           python-version: ${{ inputs.python-version }}
           working-directory: ${{ inputs.working-directory }}

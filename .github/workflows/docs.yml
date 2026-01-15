@@ -70,7 +70,7 @@ jobs:
 
       - name: Generate TypeDoc
         if: inputs.project-type == 'node'
-        uses: ./actions/docs/typedoc
+        uses: p2arthur/merged-config/actions/docs/typedoc@main
         with:
           node-version: ${{ inputs.node-version }}
           working-directory: ${{ inputs.working-directory }}
@@ -78,7 +78,7 @@ jobs:
 
       - name: Generate Sphinx Docs
         if: inputs.project-type == 'python'
-        uses: ./actions/docs/sphinx
+        uses: p2arthur/merged-config/actions/docs/sphinx@main
         with:
           python-version: ${{ inputs.python-version }}
           working-directory: ${{ inputs.working-directory }}
@@ -110,7 +110,7 @@ jobs:
           path: docs
 
       - name: Publish to GitHub Pages
-        uses: ./actions/docs/publish
+        uses: p2arthur/merged-config/actions/docs/publish@main
         with:
           docs-path: docs
           github-token: ${{ github.token }}
@@ -131,7 +131,7 @@ jobs:
           path: docs
 
       - name: Publish DevPortal Docs
-        uses: ./actions/docs/devportal-publish
+        uses: p2arthur/merged-config/actions/docs/devportal-publish@main
         with:
           docs_path: docs
           docs_branch: ${{ inputs.devportal-docs-branch }}
