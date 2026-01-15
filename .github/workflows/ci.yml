@@ -77,7 +77,6 @@ on:
 
 permissions:
   contents: read # Required to checkout code
-  actions: read # Needed to upload audit artifact
 
 jobs:
   validate:
