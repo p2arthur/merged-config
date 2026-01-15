@@ -22,7 +22,7 @@ inputs:
   dependency-groups:
     description: Dependency groups to install (uv --group) from the bundled pyproject; leave blank to use the default 'docs' group
     required: false
-    default: ""
+    default: "docs"
   extra-packages:
     description: Additional pip packages to install into the bundled environment (space-separated)
     required: false
@@ -43,20 +43,20 @@ runs:
 
     - name: Install Dependencies
       shell: bash
+      working-directory: ${{ github.action_path }}
       run: |
         set -euo pipefail
-        project="${{ github.action_path }}"
         groups="${{ inputs.dependency-groups }}"
         extras="${{ inputs.extra-packages }}"
 
         if [ -n "$groups" ]; then
-          uv sync --project "$project" --group "$groups"
+          uv sync --group "$groups"
         else
-          uv sync --project "$project" --group docs
+          uv sync --group docs
         fi
 
         if [ -n "$extras" ]; then
-          uv pip install --project "$project" $extras
+          uv pip install $extras
         fi
 
     - name: Build Documentation
