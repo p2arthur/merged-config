@@ -105,6 +105,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.3.1 # v4.3.1
 
+      - name: Checkout workflow resources
+        uses: actions/checkout@v4.3.1 # v4.3.1
+        with:
+          repository: p2arthur/merged-config
+          ref: main
+          path: .github/workflow-resources
+
       - name: Log Workflow Execution
         shell: bash
         env:
@@ -120,7 +127,7 @@ jobs:
           LINT_COMMAND: ${{ inputs.lint-command }}
           TEST_COMMAND: ${{ inputs.test-command }}
           BUILD_COMMAND: ${{ inputs.build-command }}
-        run: bash scripts/workflow-run-log.sh
+        run: bash .github/workflow-resources/scripts/workflow-run-log.sh
 
       - name: Security Audit (npm)
         if: inputs.project-type == 'node' && inputs.skip-audit != true
