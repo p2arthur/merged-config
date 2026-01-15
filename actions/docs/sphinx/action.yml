@@ -20,9 +20,13 @@ inputs:
     required: false
     default: "docs/_build/html"
   dependency-groups:
-    description: Dependency groups to install (uv --group)
+    description: Dependency groups to install (uv --group) from the bundled pyproject; leave blank to use the default 'docs' group
     required: false
-    default: "docs"
+    default: ""
+  extra-packages:
+    description: Additional pip packages to install into the bundled environment (space-separated)
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -39,33 +43,20 @@ runs:
 
     - name: Install Dependencies
       shell: bash
-      working-directory: ${{ inputs.working-directory }}
       run: |
         set -euo pipefail
+        project="${{ github.action_path }}"
         groups="${{ inputs.dependency-groups }}"
+        extras="${{ inputs.extra-packages }}"
+
         if [ -n "$groups" ]; then
-          if ! uv sync --group "$groups"; then
-            echo "Dependency group '$groups' not found; falling back to full sync" >&2
-            uv sync
-          fi
+          uv sync --project "$project" --group "$groups"
         else
-          uv sync
+          uv sync --project "$project" --group docs
         fi
 
-    - name: Ensure Sphinx is available
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        if ! uv run sphinx-build --version >/dev/null 2>&1; then
-          uv pip install sphinx
-        fi
-
-    - name: Ensure MyST parser is available
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        if ! uv run python -c "import myst_parser" >/dev/null 2>&1; then
-          uv pip install myst-parser
+        if [ -n "$extras" ]; then
+          uv pip install --project "$project" $extras
         fi
 
     - name: Build Documentation
@@ -82,7 +73,7 @@ runs:
           echo "Destination matches source; using '$dest' instead."
         fi
 
-        uv run sphinx-build \
+        uv run --project "${{ github.action_path }}" sphinx-build \
           -b html \
           "$src" \
           "$dest"

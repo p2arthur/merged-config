@@ -1,0 +1,15 @@
+[project]
+name = "sphinx-docs-action"
+version = "0.0.0"
+description = "Self-contained Sphinx environment for the reusable docs action."
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv]
+dev-dependencies = []
+
+[tool.uv.dependency-groups]
+docs = [
+  "sphinx==9.1.0",
+  "myst-parser==4.0.0"
+]
