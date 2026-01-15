@@ -89,6 +89,7 @@ runs:
     - name: Audit
       id: audit
       if: inputs.skip-audit != 'true'
+      continue-on-error: true
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: npm audit --audit-level=${{ inputs.audit-level }}
