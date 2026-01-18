@@ -88,7 +88,7 @@ jobs:
         run: ${{ inputs.build-command }}
 
       - name: Archive and Upload Artifact
-        uses: actions/upload-artifact@v4.4.3 # v4.4.3
+        uses: actions/upload-artifact@v6.0.0 # v4.4.3
         with:
           name: ${{ inputs.artifact-name }}
           path: ${{ inputs.working-directory }}/${{ inputs.build-path }}
