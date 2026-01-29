@@ -103,7 +103,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.3.1 # v4.3.1
+        uses: actions/checkout@v6.0.2 # v4.3.1
 
       - name: Run Node CI
         if: inputs.project-type == 'node'
