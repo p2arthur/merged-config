@@ -1,5 +1,29 @@
 # Hybrid Shared Config
 
+Reusable GitHub Actions and composite actions for Node.js and Python builds, documentation generation, and release workflows.
+
+This repository combines workflow ideas from p2arthur and mrcointreau. Its action definitions, scripts, and contributor notes are the product; invoking release or publishing workflows requires the target repository's own configuration.
+
+## Start reading
+
+- [`LEARNINGS.md`](LEARNINGS.md)
+- [`actions/docs/sphinx/src/sphinx_docs_action/__init__.py`](actions/docs/sphinx/src/sphinx_docs_action/__init__.py)
+
+## Development
+
+Use Node.js and npm compatible with the versions recorded in the package manifest and lockfile. Each package is installed from its own directory.
+
+The dependency manifest is [`package.json`](package.json). It does not define a complete development-server command. Install dependencies with `npm ci` from its directory, then inspect the source entry point and configuration.
+
+## Existing project notes
+
+The original guide below preserves project-specific context, credits, examples, and historical setup details. Referenced providers, branches, and deployments may have changed since it was written.
+
+<details>
+<summary>Read the original project documentation</summary>
+
+# Hybrid Shared Config
+
 Reusable GitHub Actions that keep the pinned, security-minded workflows from `shared-config` and layer on the orchestration/layout patterns from `ref-shared-config`.
 
 ## Why this beats the parents
@@ -79,3 +103,9 @@ jobs:
 actions/              # Composite actions (ci/release/docs/utils)
 configs/              # ESLint + Prettier configs
 ```
+
+</details>
+
+## License
+
+See [LICENSE](LICENSE) for the repository's license terms and attribution.
